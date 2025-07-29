@@ -66,6 +66,21 @@ Hats = {
 }
 local Reanimate = loadstring(game:HttpGet("https://raw.githubusercontent.com/Vincent81536/module/refs/heads/main/module"))()
 Character = Reanimate:GetCharacter()
+-- 🔒 Anchor and hide the real character underground
+local realChar = workspace:FindFirstChild(game.Players.LocalPlayer.Name)
+if realChar then
+	for _, p in pairs(realChar:GetDescendants()) do
+		if p:IsA("BasePart") then
+			p.Anchored = true
+			p.CFrame = p.CFrame + Vector3.new(0, -1000, 0)
+			p.Velocity = Vector3.zero
+			p.RotVelocity = Vector3.zero
+		end
+	end
+end
+-- 🛰️ Force client to own all physics on the rig
+sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge)
+
 elseif Reanimate == "Emperyean" then
 local Reanimate = loadstring(game:HttpGet("https://raw.githubusercontent.com/Vincent81536/module-/refs/heads/main/EmperyeanReanimate"))()
 Reanimate.Start({
@@ -529,21 +544,22 @@ CreateAnimation("Jump", 103148094958443)
 CreateAnimation("Fall", 90270295182351)
 
 game:GetService("RunService").Heartbeat:Connect(function()
--- 🔒 FINAL Touch-Proof Lock (Safe, No Drift, Animations Work)
-local fakeChar = Reanimate:GetCharacter()
-for _, part in pairs(fakeChar:GetDescendants()) do
-    if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-        -- Fully anchor limbs so they can’t fall off when touched
-        part.Anchored = true
-        part.Velocity = Vector3.zero
-        part.RotVelocity = Vector3.zero
-        part.AssemblyLinearVelocity = Vector3.zero
-        part.AssemblyAngularVelocity = Vector3.zero
-    elseif part:IsA("BasePart") and part.Name == "HumanoidRootPart" then
-        -- Let RootPart move (you still need walk/run)
-        part.Anchored = false
-    end
+-- 🛡️ Repair and freeze all accessory limbs
+local rig = Reanimate:GetCharacter()
+for _, acc in pairs(rig:GetChildren()) do
+	if acc:IsA("Accessory") and acc:FindFirstChild("Handle") then
+		local h = acc.Handle
+		if not h:FindFirstChildOfClass("WeldConstraint") then
+			local w = Instance.new("WeldConstraint")
+			w.Part0 = h
+			w.Part1 = rig:FindFirstChild("HumanoidRootPart") or rig.PrimaryPart
+			w.Parent = h
+		end
+		h.AssemblyLinearVelocity = Vector3.zero
+		h.AssemblyAngularVelocity = Vector3.zero
+	end
 end
+
 
 
 for i,v in pairs(Character:FindFirstChildOfClass("Humanoid"):GetPlayingAnimationTracks()) do
