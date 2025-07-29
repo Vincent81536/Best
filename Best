@@ -529,13 +529,27 @@ CreateAnimation("Jump", 103148094958443)
 CreateAnimation("Fall", 90270295182351)
 
 game:GetService("RunService").Heartbeat:Connect(function()
--- ✅ Light Anti-Jiggle: Safe for animation
-local fakeChar = Character or Reanimate:GetCharacter()
-for _, part in pairs(fakeChar:GetDescendants()) do
-    if part:IsA("BasePart") then
-        part.Velocity = Vector3.zero
-        part.RotVelocity = Vector3.zero
-    end
+-- 🔒 Limb Reinforcement for Krypton (touch-proof)
+local fakeChar = Reanimate:GetCharacter()
+for _, acc in pairs(fakeChar:GetChildren()) do
+	if acc:IsA("Accessory") and acc:FindFirstChild("Handle") then
+		local handle = acc.Handle
+		-- Rebuild missing weld if Roblox broke it
+		if not handle:FindFirstChildOfClass("WeldConstraint") then
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = handle
+			weld.Part1 = fakeChar:FindFirstChild("HumanoidRootPart") or fakeChar.PrimaryPart
+			weld.Parent = handle
+		end
+		-- Stop runaway drift if part is flying
+		if handle.Velocity.Magnitude > 5 then
+			handle.Velocity = Vector3.zero
+			handle.RotVelocity = Vector3.zero
+			handle.AssemblyLinearVelocity = Vector3.zero
+			handle.AssemblyAngularVelocity = Vector3.zero
+			handle.CFrame = (fakeChar:FindFirstChild("HumanoidRootPart") or handle).CFrame
+		end
+	end
 end
 
 for i,v in pairs(Character:FindFirstChildOfClass("Humanoid"):GetPlayingAnimationTracks()) do
