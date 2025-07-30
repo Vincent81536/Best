@@ -930,35 +930,50 @@ task.spawn(function()
 end)
 
 
--- 🔧 Krypton Rig Stabilization Patch
--- Prevents rigs from shaking and falling apart when touching others
+-- 🚨 Krypton Rig Stabilization (Stronger Fix)
 task.spawn(function()
     while true do
         if Character and Character:IsDescendantOf(workspace) then
             local root = Character:FindFirstChild("HumanoidRootPart")
-            if root then
+            local humanoid = Character:FindFirstChildOfClass("Humanoid")
+            if root and humanoid then
                 for _, part in pairs(Character:GetDescendants()) do
                     if part:IsA("BasePart") and not part.Anchored then
-                        -- Re-weld drifting parts
-                        if (part.Position - root.Position).Magnitude > 15 then
-                            local existingWeld = part:FindFirstChildOfClass("WeldConstraint")
-                            if not existingWeld then
+                        -- Reset extreme physics drift
+                        if (part.Position - root.Position).Magnitude > 12 then
+                            part.Velocity = Vector3.zero
+                            part.RotVelocity = Vector3.zero
+                            part.CFrame = root.CFrame * CFrame.new(math.random(-1,1), math.random(0,1), math.random(-1,1))
+
+                            -- Restore welds if missing
+                            local hasMotor = false
+                            for _, obj in pairs(part:GetChildren()) do
+                                if obj:IsA("Motor6D") or obj:IsA("WeldConstraint") then
+                                    hasMotor = true
+                                    break
+                                end
+                            end
+                            if not hasMotor then
                                 local weld = Instance.new("WeldConstraint")
                                 weld.Part0 = root
                                 weld.Part1 = part
                                 weld.Parent = root
-                                part.CFrame = root.CFrame * CFrame.new(0, 0, -1)
                             end
                         end
-                        -- Maintain network ownership
+                        -- Force local player as network owner
                         pcall(function()
                             part:SetNetworkOwner(game.Players.LocalPlayer)
                         end)
                     end
                 end
+
+                -- Slight platform stand toggle to reset physics state
+                humanoid.PlatformStand = true
+                task.wait(0.05)
+                humanoid.PlatformStand = false
             end
         end
-        task.wait(5)
+        task.wait(3)
     end
 end)
 
