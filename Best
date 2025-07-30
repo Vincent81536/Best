@@ -928,7 +928,10 @@ task.spawn(function()
         wait(0.2)
     end
 end)
--- ✅ EXTRA Rig Auto-Weld Repair if drift detected
+
+
+-- 🔧 Krypton Rig Stabilization Patch
+-- Prevents rigs from shaking and falling apart when touching others
 task.spawn(function()
     while true do
         if Character and Character:IsDescendantOf(workspace) then
@@ -936,14 +939,18 @@ task.spawn(function()
             if root then
                 for _, part in pairs(Character:GetDescendants()) do
                     if part:IsA("BasePart") and not part.Anchored then
-                        -- Reattach by weld if needed
+                        -- Re-weld drifting parts
                         if (part.Position - root.Position).Magnitude > 15 then
-                            local weld = Instance.new("WeldConstraint")
-                            weld.Part0 = root
-                            weld.Part1 = part
-                            weld.Parent = root
-                            part.CFrame = root.CFrame * CFrame.new(0, 0, -1)
+                            local existingWeld = part:FindFirstChildOfClass("WeldConstraint")
+                            if not existingWeld then
+                                local weld = Instance.new("WeldConstraint")
+                                weld.Part0 = root
+                                weld.Part1 = part
+                                weld.Parent = root
+                                part.CFrame = root.CFrame * CFrame.new(0, 0, -1)
+                            end
                         end
+                        -- Maintain network ownership
                         pcall(function()
                             part:SetNetworkOwner(game.Players.LocalPlayer)
                         end)
@@ -951,7 +958,7 @@ task.spawn(function()
                 end
             end
         end
-        wait(5)
+        task.wait(5)
     end
 end)
 
