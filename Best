@@ -17,7 +17,7 @@ Reclaim = false,
 Refit = true,
 SetCharacter = true,
 Animations = true,
-[cite_start]NoCollisions = false, -- Changed from true to false to enable collisions [cite: 1]
+NoCollisions = false, -- Changed from true to false to enable collisions
 AntiVoiding = false,
 SetSimulationRadius = true,
 DisableCharacterScripts = true,
@@ -112,12 +112,12 @@ Leg", "Right Leg" }, Offset = CFrame.Angles(0, 0, 1.57), TextureId = "9714812171
 { MeshId = "17387586286", Names = { "Left Leg", "Right Leg" }, Offset = CFrame.Angles(0, 0, 1.57), TextureId = "17387586304" },
 { MeshId = "14255522247", Names = { "Left Arm", "Right Arm"}, Offset = CFrame.Angles(0, 0, 1.57), TextureId = "14255543546" },
 -- Noob Rig
-{ MeshId = "18640899369", Name = "Torso", Offset = CFrame.Angles(0, 0, 0), TextureId = "18640899481" },
+{ MeshId = "18640899369", Name = "Torso", Offset = CFrame.identity, TextureId = "18640899481" },
 { MeshId = "18640914129", Names = { "Left Arm", 
-"Right Arm"}, Offset = CFrame.Angles(0, 0, 0), TextureId = "18640914168" },
-{ MeshId = "18640901641", Names = { "Left Leg", "Right Leg"}, Offset = CFrame.Angles(0, 0, 0), TextureId = "18640901676" },
+"Right Arm"}, Offset = CFrame.identity, TextureId = "18640914168" },
+{ MeshId = "18640901641", Names = { "Left Leg", "Right Leg"}, Offset = CFrame.identity, TextureId = "18640901676" },
 -- request
-{ MeshId = "14768666349", Name = "Torso", Offset = CFrame.Angles(0, 0, 0), TextureId = "14768664565" },
+{ MeshId = "14768666349", Name = "Torso", Offset = CFrame.identity, TextureId = "14768664565" },
 
 { MeshId = "14768684979", Names = { "Left Arm", "Right Arm"}, Offset = CFrame.Angles(0, 0, 1.57), TextureId = "14768683674" },
 { MeshId = "137702817952968", Names = { "Left Arm", "Right Arm", "Left Leg", "Right Leg" }, Offset = CFrame.Angles(0, 0, 1.57), TextureId = "135650240593878" },--84451219120140
@@ -348,7 +348,8 @@ ID = 77558722177080, Speed = 0.85},
 {Name = "Club Penguin", ID = 89761302048916},
 {Name = "Colossal", ID = 93170660505618},
 {Name = "Company Jig", ID = 116614992219971},
-{Name = "Conga", ID = 115557579308566},
+{Name = "Conga", ID = 
+115557579308566},
 {Name = "Continental Drift", ID = 105174222033892},
 {Name = "CrackDown", ID = 133188222109902},
 {Name = "Crank Dat", ID = 139148388599834},
