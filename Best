@@ -928,68 +928,78 @@ task.spawn(function()
         wait(0.2)
     end
 end)
+Beta
+0 / 0
+used queries
+1
 
-
--- 🔁 Full Motor6D Rebuilder + Collision Guard for Krypton
+-- 🛡 Ultimate Krypton Public Server Anti-Shake Fix
+local RunService = game:GetService("RunService")
 local PhysicsService = game:GetService("PhysicsService")
-local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
 
--- Prevent internal collisions
-local function preventSelfCollision(char)
+local player = Players.LocalPlayer
+
+-- Prepare no-collision group
+pcall(function()
+    if not PhysicsService:CollisionGroupExists("NoCollideRigs") then
+        PhysicsService:CreateCollisionGroup("NoCollideRigs")
+        PhysicsService:CollisionGroupSetCollidable("NoCollideRigs", "NoCollideRigs", false)
+    end
+end)
+
+-- Apply group to parts
+local function applyNoCollisionGroup(char)
     for _, part in pairs(char:GetDescendants()) do
         if part:IsA("BasePart") then
             pcall(function()
-                PhysicsService:SetPartCollisionGroup(part, "NoCollision")
+                PhysicsService:SetPartCollisionGroup(part, "NoCollideRigs")
             end)
         end
     end
 end
 
--- Rebuild critical joints
-local function rebuildJoints(char)
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    for _, limb in pairs(char:GetDescendants()) do
-        if limb:IsA("BasePart") and limb ~= root then
-            local existing = false
-            for _, obj in pairs(limb:GetChildren()) do
-                if obj:IsA("Motor6D") then
-                    existing = true
-                    break
-                end
-            end
-            if not existing then
-                local motor = Instance.new("Motor6D")
-                motor.Name = "RebuiltMotor"
-                motor.Part0 = root
-                motor.Part1 = limb
-                motor.C0 = root.CFrame:ToObjectSpace(limb.CFrame)
-                motor.C1 = CFrame.new()
-                motor.Parent = root
-                limb.CFrame = root.CFrame
-            end
+-- Anchor parts without breaking animation
+local function invisiblyAnchorRig(char)
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            part.Anchored = true
         end
     end
 end
 
--- Run stabilization once character loads
+-- Force Motor6D re-apply every frame
+local function stabilizeMotors(char)
+    local motors = {}
+    for _, obj in pairs(char:GetDescendants()) do
+        if obj:IsA("Motor6D") then
+            table.insert(motors, {
+                motor = obj,
+                part0 = obj.Part0,
+                part1 = obj.Part1,
+                c0 = obj.C0,
+                c1 = obj.C1
+            })
+        end
+    end
+
+    RunService.Stepped:Connect(function()
+        for _, data in pairs(motors) do
+            local m = data.motor
+            if m and m.Parent then
+                m.Part0 = data.part0
+                m.Part1 = data.part1
+                m.C0 = data.c0
+                m.C1 = data.c1
+            end
+        end
+    end)
+end
+
+-- Run on character spawn
 player.CharacterAdded:Connect(function(char)
     char:WaitForChild("HumanoidRootPart")
-    task.wait(0.25)
-
-    -- Temporarily anchor all parts to stabilize rig on spawn
-    for _, part in pairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Anchored = true
-        end
-    end
-    task.wait(0.25)
-    for _, part in pairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Anchored = false
-        end
-    end
-
-    preventSelfCollision(char)
-    rebuildJoints(char)
+    applyNoCollisionGroup(char)
+    invisiblyAnchorRig(char)
+    stabilizeMotors(char)
 end)
