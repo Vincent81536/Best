@@ -930,50 +930,66 @@ task.spawn(function()
 end)
 
 
--- 🚨 Krypton Rig Stabilization (Stronger Fix)
-task.spawn(function()
-    while true do
-        if Character and Character:IsDescendantOf(workspace) then
-            local root = Character:FindFirstChild("HumanoidRootPart")
-            local humanoid = Character:FindFirstChildOfClass("Humanoid")
-            if root and humanoid then
-                for _, part in pairs(Character:GetDescendants()) do
-                    if part:IsA("BasePart") and not part.Anchored then
-                        -- Reset extreme physics drift
-                        if (part.Position - root.Position).Magnitude > 12 then
-                            part.Velocity = Vector3.zero
-                            part.RotVelocity = Vector3.zero
-                            part.CFrame = root.CFrame * CFrame.new(math.random(-1,1), math.random(0,1), math.random(-1,1))
+-- 🔁 Full Motor6D Rebuilder + Collision Guard for Krypton
+local PhysicsService = game:GetService("PhysicsService")
+local player = game.Players.LocalPlayer
 
-                            -- Restore welds if missing
-                            local hasMotor = false
-                            for _, obj in pairs(part:GetChildren()) do
-                                if obj:IsA("Motor6D") or obj:IsA("WeldConstraint") then
-                                    hasMotor = true
-                                    break
-                                end
-                            end
-                            if not hasMotor then
-                                local weld = Instance.new("WeldConstraint")
-                                weld.Part0 = root
-                                weld.Part1 = part
-                                weld.Parent = root
-                            end
-                        end
-                        -- Force local player as network owner
-                        pcall(function()
-                            part:SetNetworkOwner(game.Players.LocalPlayer)
-                        end)
-                    end
+-- Prevent internal collisions
+local function preventSelfCollision(char)
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            pcall(function()
+                PhysicsService:SetPartCollisionGroup(part, "NoCollision")
+            end)
+        end
+    end
+end
+
+-- Rebuild critical joints
+local function rebuildJoints(char)
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    for _, limb in pairs(char:GetDescendants()) do
+        if limb:IsA("BasePart") and limb ~= root then
+            local existing = false
+            for _, obj in pairs(limb:GetChildren()) do
+                if obj:IsA("Motor6D") then
+                    existing = true
+                    break
                 end
-
-                -- Slight platform stand toggle to reset physics state
-                humanoid.PlatformStand = true
-                task.wait(0.05)
-                humanoid.PlatformStand = false
+            end
+            if not existing then
+                local motor = Instance.new("Motor6D")
+                motor.Name = "RebuiltMotor"
+                motor.Part0 = root
+                motor.Part1 = limb
+                motor.C0 = root.CFrame:ToObjectSpace(limb.CFrame)
+                motor.C1 = CFrame.new()
+                motor.Parent = root
+                limb.CFrame = root.CFrame
             end
         end
-        task.wait(3)
     end
-end)
+end
 
+-- Run stabilization once character loads
+player.CharacterAdded:Connect(function(char)
+    char:WaitForChild("HumanoidRootPart")
+    task.wait(0.25)
+
+    -- Temporarily anchor all parts to stabilize rig on spawn
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Anchored = true
+        end
+    end
+    task.wait(0.25)
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Anchored = false
+        end
+    end
+
+    preventSelfCollision(char)
+    rebuildJoints(char)
+end)
