@@ -930,58 +930,59 @@ task.spawn(function()
 end)
 
 
--- 🛡 Ultimate Krypton Public Server Anti-Shake Fix
-local RunService = game:GetService("RunService")
-local PhysicsService = game:GetService("PhysicsService")
+-- ✅ Krypton Public Server Stable Rig Fix (Final)
 local Players = game:GetService("Players")
+local PhysicsService = game:GetService("PhysicsService")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 
--- Prepare no-collision group
+-- Set up NoCollide group
 pcall(function()
-    if not PhysicsService:CollisionGroupExists("NoCollideRigs") then
-        PhysicsService:CreateCollisionGroup("NoCollideRigs")
-        PhysicsService:CollisionGroupSetCollidable("NoCollideRigs", "NoCollideRigs", false)
+    if not PhysicsService:CollisionGroupExists("NoCollideRig") then
+        PhysicsService:CreateCollisionGroup("NoCollideRig")
+        PhysicsService:CollisionGroupSetCollidable("NoCollideRig", "NoCollideRig", false)
     end
 end)
 
--- Apply group to parts
-local function applyNoCollisionGroup(char)
+-- Apply collision group and anchor parts
+local function sanitizeRig(char)
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
     for _, part in pairs(char:GetDescendants()) do
         if part:IsA("BasePart") then
-            pcall(function()
-                PhysicsService:SetPartCollisionGroup(part, "NoCollideRigs")
-            end)
+            -- Disable collisions and assign to group
+            part.CanCollide = false
+            PhysicsService:SetPartCollisionGroup(part, "NoCollideRig")
+
+            -- Anchor all parts except HumanoidRootPart
+            if part ~= root then
+                part.Anchored = true
+            else
+                part.Anchored = false
+            end
         end
     end
 end
 
--- Anchor parts without breaking animation
-local function invisiblyAnchorRig(char)
-    for _, part in pairs(char:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-            part.Anchored = true
-        end
-    end
-end
-
--- Force Motor6D re-apply every frame
-local function stabilizeMotors(char)
+-- Force Motor6D update to keep animation working
+local function preserveMotor6D(char)
     local motors = {}
-    for _, obj in pairs(char:GetDescendants()) do
-        if obj:IsA("Motor6D") then
+    for _, m in pairs(char:GetDescendants()) do
+        if m:IsA("Motor6D") then
             table.insert(motors, {
-                motor = obj,
-                part0 = obj.Part0,
-                part1 = obj.Part1,
-                c0 = obj.C0,
-                c1 = obj.C1
+                motor = m,
+                part0 = m.Part0,
+                part1 = m.Part1,
+                c0 = m.C0,
+                c1 = m.C1
             })
         end
     end
 
     RunService.Stepped:Connect(function()
-        for _, data in pairs(motors) do
+        for _, data in ipairs(motors) do
             local m = data.motor
             if m and m.Parent then
                 m.Part0 = data.part0
@@ -993,10 +994,54 @@ local function stabilizeMotors(char)
     end)
 end
 
--- Run on character spawn
+-- Execute on character load
 player.CharacterAdded:Connect(function(char)
     char:WaitForChild("HumanoidRootPart")
-    applyNoCollisionGroup(char)
-    invisiblyAnchorRig(char)
-    stabilizeMotors(char)
+    task.wait(0.1)
+    sanitizeRig(char)
+    preserveMotor6D(char)
+end)
+
+
+-- 🧢 Handle catalog (borrowed) accessories safely
+local function fixAccessories(char)
+    for _, accessory in ipairs(char:GetChildren()) do
+        if accessory:IsA("Accessory") then
+            local handle = accessory:FindFirstChild("Handle")
+            if handle and handle:IsA("BasePart") then
+                handle.Anchored = true
+                handle.CanCollide = false
+                PhysicsService:SetPartCollisionGroup(handle, "NoCollideRig")
+
+                -- Ensure AccessoryWeld exists
+                local hasWeld = false
+                for _, weld in ipairs(handle:GetChildren()) do
+                    if weld:IsA("Weld") or weld:IsA("WeldConstraint") then
+                        hasWeld = true
+                        break
+                    end
+                end
+
+                if not hasWeld then
+                    local hrp = char:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local fallbackWeld = Instance.new("WeldConstraint")
+                        fallbackWeld.Part0 = hrp
+                        fallbackWeld.Part1 = handle
+                        fallbackWeld.Parent = hrp
+                        handle.CFrame = hrp.CFrame
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Modify character spawn hook to include accessories
+player.CharacterAdded:Connect(function(char)
+    char:WaitForChild("HumanoidRootPart")
+    task.wait(0.1)
+    sanitizeRig(char)
+    preserveMotor6D(char)
+    fixAccessories(char)
 end)
