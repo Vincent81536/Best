@@ -529,23 +529,6 @@ CreateAnimation("Jump", 103148094958443)
 CreateAnimation("Fall", 90270295182351)
 
 game:GetService("RunService").Heartbeat:Connect(function()
--- 🔒 FINAL Touch-Proof Lock (Safe, No Drift, Animations Work)
-local fakeChar = Reanimate:GetCharacter()
-for _, part in pairs(fakeChar:GetDescendants()) do
-    if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-        -- Fully anchor limbs so they can’t fall off when touched
-        part.Anchored = true
-        part.Velocity = Vector3.zero
-        part.RotVelocity = Vector3.zero
-        part.AssemblyLinearVelocity = Vector3.zero
-        part.AssemblyAngularVelocity = Vector3.zero
-    elseif part:IsA("BasePart") and part.Name == "HumanoidRootPart" then
-        -- Let RootPart move (you still need walk/run)
-        part.Anchored = false
-    end
-end
-
-
 for i,v in pairs(Character:FindFirstChildOfClass("Humanoid"):GetPlayingAnimationTracks()) do
 v:Stop(0)
 end
@@ -945,3 +928,35 @@ task.spawn(function()
         wait(0.2)
     end
 end)
+Beta
+0 / 0
+used queries
+1
+
+-- ✅ EXTRA Rig Auto-Weld Repair if drift detected
+task.spawn(function()
+    while true do
+        if Character and Character:IsDescendantOf(workspace) then
+            local root = Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                for _, part in pairs(Character:GetDescendants()) do
+                    if part:IsA("BasePart") and not part.Anchored then
+                        -- Reattach by weld if needed
+                        if (part.Position - root.Position).Magnitude > 15 then
+                            local weld = Instance.new("WeldConstraint")
+                            weld.Part0 = root
+                            weld.Part1 = part
+                            weld.Parent = root
+                            part.CFrame = root.CFrame * CFrame.new(0, 0, -1)
+                        end
+                        pcall(function()
+                            part:SetNetworkOwner(game.Players.LocalPlayer)
+                        end)
+                    end
+                end
+            end
+        end
+        wait(5)
+    end
+end)
+
